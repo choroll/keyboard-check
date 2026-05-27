@@ -36,6 +36,7 @@ A Rust TUI application that visualizes keyboard input in the terminal. Shows a Q
 ## Git Workflow
 - Standard Git open source project
 - Commit frequently with descriptive messages
+- Write commit messages in English only
 - Include both Chinese and English in README
 
 ## Testing
