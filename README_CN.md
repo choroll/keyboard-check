@@ -1,4 +1,4 @@
-# 按键检测
+# 键盘检测
 
 [English Version](README.md)
 
@@ -15,8 +15,8 @@
 ## 安装
 
 ```bash
-git clone https://github.com/yourusername/key-check.git
-cd key-check
+git clone https://github.com/yourusername/keyboard-check.git
+cd keyboard-check
 cargo build --release
 ```
 

@@ -1,6 +1,6 @@
 # Agent Instructions
 
-## Project: key-check
+## Project: keyboard-check
 
 A Rust TUI application that visualizes keyboard input in the terminal. Shows a QWERTY keyboard layout and highlights keys when pressed.
 

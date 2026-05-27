@@ -11,7 +11,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     let area = f.area();
     f.render_widget(
         Block::default()
-            .title("Key Check - Press any key (ESC or Ctrl+C to exit)")
+            .title("Keyboard Check - Press any key (ESC or Ctrl+C to exit)")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Cyan)),
         area,

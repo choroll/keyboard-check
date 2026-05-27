@@ -1,4 +1,4 @@
-# Key Check
+# Keyboard Check
 
 [中文版本](README_CN.md)
 
@@ -15,8 +15,8 @@ A Rust TUI application that visualizes keyboard input in the terminal.
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/key-check.git
-cd key-check
+git clone https://github.com/yourusername/keyboard-check.git
+cd keyboard-check
 cargo build --release
 ```
 
