@@ -1,5 +1,7 @@
 # Key Check
 
+[中文版本](README_CN.md)
+
 A Rust TUI application that visualizes keyboard input in the terminal.
 
 ## Features

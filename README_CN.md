@@ -1,5 +1,7 @@
 # 按键检测
 
+[English Version](README.md)
+
 一个 Rust TUI 程序，在终端中可视化键盘输入。
 
 ## 功能
