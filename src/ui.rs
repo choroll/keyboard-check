@@ -166,11 +166,11 @@ pub fn draw(f: &mut Frame, app: &App) {
 fn draw_key_row(f: &mut Frame, app: &App, area: Rect, keys: &[(&str, bool)]) {
     let constraints: Vec<Constraint> = keys
         .iter()
-        .map(|(_, wide)| {
+        .map(|(label, wide)| {
             if *wide {
-                Constraint::Length(10)
+                Constraint::Length(12)
             } else {
-                Constraint::Length(4)
+                Constraint::Length((label.len() as u16 + 3).max(4))
             }
         })
         .collect();
@@ -233,7 +233,9 @@ fn is_key_pressed(app: &App, label: &str) -> bool {
             if label.len() == 1
                 && let Some(ch) = label.chars().next()
             {
-                return app.is_pressed(crossterm::event::KeyCode::Char(ch));
+                let lower = ch.to_lowercase().next().unwrap_or(ch);
+                return app.is_pressed(crossterm::event::KeyCode::Char(ch))
+                    || app.is_pressed(crossterm::event::KeyCode::Char(lower));
             }
             false
         }
