@@ -2,15 +2,15 @@ use crossterm::event::{KeyCode, ModifierKeyCode};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
-    style::{Color, Style},
-    widgets::{Block, Borders, Paragraph},
+    style::{Color, Modifier, Style},
+    widgets::{Block, BorderType, Borders, Paragraph},
 };
 
 use crate::app::App;
 
 const KEY_HEIGHT: u16 = 3;
-const MAIN_NAV_GAP: u16 = 76;
-const MAIN_NUMPAD_GAP: u16 = 94;
+const MAIN_NAV_GAP: u16 = 74;
+const MAIN_NUMPAD_GAP: u16 = 93;
 
 #[derive(Clone, Copy)]
 enum KeyMatcher {
@@ -58,6 +58,95 @@ const fn key(label: &'static str, width: u16, matcher: KeyMatcher) -> KeyUnit {
 const fn gap(width: u16) -> KeyUnit {
     KeyUnit::Gap(width)
 }
+
+// ========== 按键分类与配色系统 ==========
+
+#[derive(Clone, Copy, Debug)]
+enum KeyCategory {
+    Function,   // F1-F12, Esc, Print, etc.
+    Alpha,      // A-Z
+    Number,     // 0-9
+    Modifier,   // Shift, Ctrl, Alt, Win
+    Navigation, // Insert, Delete, Home, End, PgUp, PgDn
+    Arrow,      // Up/Down/Left/Right
+    Numpad,     // NumLock, keypad numbers & operators
+    Special,    // Space, Enter, Tab, Backspace, Caps, symbols
+}
+
+impl KeyCategory {
+    /// 返回 (背景色, 文字色, 边框色)
+    fn colors(self, pressed: bool) -> (Color, Color, Color) {
+        if pressed {
+            match self {
+                Self::Function => {
+                    (Color::Rgb(100, 200, 255), Color::Black, Color::Rgb(50, 150, 255))
+                }
+                Self::Alpha => {
+                    (Color::Rgb(100, 255, 100), Color::Black, Color::Rgb(50, 200, 50))
+                }
+                Self::Number => {
+                    (Color::Rgb(255, 255, 100), Color::Black, Color::Rgb(200, 200, 50))
+                }
+                Self::Modifier => {
+                    (Color::Rgb(255, 120, 120), Color::Black, Color::Rgb(220, 80, 80))
+                }
+                Self::Navigation => {
+                    (Color::Rgb(255, 120, 255), Color::Black, Color::Rgb(220, 80, 220))
+                }
+                Self::Arrow => {
+                    (Color::Rgb(120, 150, 255), Color::Black, Color::Rgb(80, 100, 220))
+                }
+                Self::Numpad => {
+                    (Color::Rgb(255, 200, 80), Color::Black, Color::Rgb(220, 160, 40))
+                }
+                Self::Special => {
+                    (Color::Rgb(220, 220, 220), Color::Black, Color::Rgb(180, 180, 180))
+                }
+            }
+        } else {
+            // 未按下：统一的暗色主题
+            (
+                Color::Rgb(42, 42, 42),
+                Color::Rgb(170, 170, 170),
+                Color::Rgb(65, 65, 65),
+            )
+        }
+    }
+}
+
+/// 根据 KeyMatcher 推断按键类别
+fn infer_category(matcher: KeyMatcher) -> KeyCategory {
+    use KeyCode::*;
+    match matcher {
+        // 功能键
+        KeyMatcher::Code(Esc | F(_) | PrintScreen | ScrollLock | Pause) => KeyCategory::Function,
+        // NumLock 属于数字键盘区
+        KeyMatcher::Code(NumLock) => KeyCategory::Numpad,
+        // 修饰键
+        KeyMatcher::Modifier(_) => KeyCategory::Modifier,
+        // 方向键（独立的方向键，非数字键盘上的）
+        KeyMatcher::Code(Up | Down | Left | Right) => KeyCategory::Arrow,
+        // 导航键
+        KeyMatcher::NonKeypadCode(Insert | Delete | Home | End | PageUp | PageDown) => {
+            KeyCategory::Navigation
+        }
+        // 数字键盘
+        KeyMatcher::KeypadChars(_) | KeyMatcher::KeypadCodes(_) => KeyCategory::Numpad,
+        // 字符键：根据首字符判断是字母、数字还是符号
+        KeyMatcher::Chars(chars) => {
+            let first = chars.as_bytes()[0];
+            match first {
+                b'a'..=b'z' | b'A'..=b'Z' => KeyCategory::Alpha,
+                b'0'..=b'9' => KeyCategory::Number,
+                _ => KeyCategory::Special,
+            }
+        }
+        // 其他所有键归为特殊键
+        _ => KeyCategory::Special,
+    }
+}
+
+// ========== 键盘布局定义 ==========
 
 const FUNCTION_ROW: &[KeyUnit] = &[
     key("Esc", 5, KeyMatcher::Code(KeyCode::Esc)),
@@ -339,20 +428,48 @@ const NUMPAD_KEYS: &[PositionedKey] = &[
     },
 ];
 
+// ========== 绘制函数 ==========
+
 pub fn draw(f: &mut Frame, app: &App) {
     let area = f.area();
-    f.render_widget(
-        Block::default()
-            .title("Keyboard Check - 104-key ANSI layout (ESC or Ctrl+C to exit)")
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan)),
-        area,
-    );
+
+    // 美化外框：双层边框 + 加粗标题
+    let title_block = Block::default()
+        .title(" Keyboard Check ")
+        .title_alignment(Alignment::Center)
+        .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Double)
+        .border_style(Style::default().fg(Color::Rgb(80, 80, 80)));
+    f.render_widget(title_block, area);
 
     let inner = area.inner(Margin {
         horizontal: 2,
         vertical: 2,
     });
+
+    // 预留底部提示栏
+    let legend_height = 1u16;
+    let main_height = inner.height.saturating_sub(legend_height);
+
+    let main_area = Rect {
+        x: inner.x,
+        y: inner.y,
+        width: inner.width,
+        height: main_height,
+    };
+
+    let legend_area = Rect {
+        x: inner.x,
+        y: inner.y.saturating_add(main_height),
+        width: inner.width,
+        height: legend_height,
+    };
+
+    let legend = Paragraph::new(" Press any key to highlight  ESC or Ctrl+C to exit ")
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(Color::Rgb(120, 120, 120)));
+    f.render_widget(legend, legend_area);
 
     let rows = Layout::default()
         .direction(Direction::Vertical)
@@ -364,30 +481,32 @@ pub fn draw(f: &mut Frame, app: &App) {
             Constraint::Length(KEY_HEIGHT),
             Constraint::Length(KEY_HEIGHT),
         ])
-        .split(inner);
+        .split(main_area);
 
-    draw_row(f, app, inner, inner.x, rows[0].y, FUNCTION_ROW);
-    draw_row(f, app, inner, inner.x, rows[1].y, NUMBER_ROW);
-    draw_row(f, app, inner, inner.x, rows[2].y, QWERTY_ROW);
-    draw_row(f, app, inner, inner.x, rows[3].y, HOME_ROW);
-    draw_row(f, app, inner, inner.x, rows[4].y, BOTTOM_ROW);
-    draw_row(f, app, inner, inner.x, rows[5].y, SPACE_ROW);
+    draw_row(f, app, main_area, main_area.x, rows[0].y, FUNCTION_ROW);
+    draw_row(f, app, main_area, main_area.x, rows[1].y, NUMBER_ROW);
+    draw_row(f, app, main_area, main_area.x, rows[2].y, QWERTY_ROW);
+    draw_row(f, app, main_area, main_area.x, rows[3].y, HOME_ROW);
+    draw_row(f, app, main_area, main_area.x, rows[4].y, BOTTOM_ROW);
+    draw_row(f, app, main_area, main_area.x, rows[5].y, SPACE_ROW);
 
-    let nav_x = inner.x.saturating_add(MAIN_NAV_GAP);
-    draw_row(f, app, inner, nav_x, rows[1].y, NAV_TOP_ROW);
-    draw_row(f, app, inner, nav_x, rows[2].y, NAV_BOTTOM_ROW);
-    draw_row(f, app, inner, nav_x, rows[4].y, ARROW_TOP_ROW);
-    draw_row(f, app, inner, nav_x, rows[5].y, ARROW_BOTTOM_ROW);
+    let nav_x = main_area.x.saturating_add(MAIN_NAV_GAP);
+    draw_row(f, app, main_area, nav_x, rows[1].y, NAV_TOP_ROW);
+    draw_row(f, app, main_area, nav_x, rows[2].y, NAV_BOTTOM_ROW);
+    draw_row(f, app, main_area, nav_x, rows[4].y, ARROW_TOP_ROW);
+    draw_row(f, app, main_area, nav_x, rows[5].y, ARROW_BOTTOM_ROW);
 
-    let numpad_x = inner.x.saturating_add(MAIN_NUMPAD_GAP);
+    let numpad_x = main_area.x.saturating_add(MAIN_NUMPAD_GAP);
     for positioned in NUMPAD_KEYS {
         draw_key(
             f,
             app,
-            inner,
+            main_area,
             Rect {
                 x: numpad_x.saturating_add(positioned.col),
-                y: inner.y.saturating_add(positioned.row * KEY_HEIGHT),
+                y: main_area
+                    .y
+                    .saturating_add(positioned.row.saturating_mul(KEY_HEIGHT)),
                 width: positioned.key.width,
                 height: positioned.height,
             },
@@ -437,15 +556,27 @@ fn draw_key(f: &mut Frame, app: &App, bounds: Rect, area: Rect, key: KeySpec) {
     }
 
     let is_pressed = key.matcher.is_pressed(app);
-    let style = if is_pressed {
-        Style::default().bg(Color::Green).fg(Color::Black)
+    let category = infer_category(key.matcher);
+    let (bg, fg, border_color) = category.colors(is_pressed);
+
+    // 3D 效果：未按下时圆润凸起，按下时厚重凹陷
+    let border_type = if is_pressed {
+        BorderType::Thick
     } else {
-        Style::default().bg(Color::DarkGray).fg(Color::White)
+        BorderType::Rounded
+    };
+
+    // 按下时文字加粗
+    let style = if is_pressed {
+        Style::default().bg(bg).fg(fg).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().bg(bg).fg(fg)
     };
 
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Gray))
+        .border_type(border_type)
+        .border_style(Style::default().fg(border_color))
         .style(style);
 
     let paragraph = Paragraph::new(key.label)
