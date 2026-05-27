@@ -26,6 +26,8 @@ A Rust TUI application that visualizes keyboard input in the terminal. Shows a Q
 
 ## Key Conventions
 - Use crossterm::event for non-blocking key input
+- Key highlights depend on KeyEventKind: Press/Repeat inserts, Release removes
+- Enable KeyboardEnhancementFlags::REPORT_EVENT_TYPES when supported so terminals can emit Release events
 - Render keyboard layout using ratatui Block and Paragraph widgets
 - Highlight pressed keys with color change (green background)
 - Support both character keys and special keys (Enter, Space, etc.)
