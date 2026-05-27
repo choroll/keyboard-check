@@ -7,9 +7,9 @@ A Rust TUI application that visualizes keyboard input in the terminal.
 ## Features
 
 - Real-time keyboard visualization
-- QWERTY keyboard layout display
+- ANSI 104-key QWERTY keyboard layout display
 - Key press highlighting (green background)
-- Support for special keys
+- Support for function keys, navigation keys, arrow keys, and numpad keys
 - Clean terminal UI
 
 ## Installation

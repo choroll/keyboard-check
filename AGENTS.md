@@ -2,7 +2,7 @@
 
 ## Project: keyboard-check
 
-A Rust TUI application that visualizes keyboard input in the terminal. Shows a QWERTY keyboard layout and highlights keys when pressed.
+A Rust TUI application that visualizes keyboard input in the terminal. Shows an ANSI 104-key QWERTY layout and highlights keys when pressed.
 
 ## Tech Stack
 - **Language**: Rust
@@ -27,10 +27,10 @@ A Rust TUI application that visualizes keyboard input in the terminal. Shows a Q
 ## Key Conventions
 - Use crossterm::event for non-blocking key input
 - Key highlights depend on KeyEventKind: Press/Repeat inserts, Release removes
-- Enable KeyboardEnhancementFlags::REPORT_EVENT_TYPES when supported so terminals can emit Release events
+- Enable KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES, REPORT_ALL_KEYS_AS_ESCAPE_CODES, and REPORT_EVENT_TYPES when supported so terminals can emit lock/modifier/release/keypad events
 - Render keyboard layout using ratatui Block and Paragraph widgets
 - Highlight pressed keys with color change (green background)
-- Support both character keys and special keys (Enter, Space, etc.)
+- Keep the UI as a 104-key ANSI layout: main block, navigation cluster, arrows, and numpad
 - Clean exit on Esc or Ctrl+C
 
 ## Git Workflow
