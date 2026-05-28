@@ -20,6 +20,7 @@ use ratatui::{
 };
 
 mod app;
+mod global_block;
 mod ui;
 
 use app::App;
@@ -43,6 +44,8 @@ fn main() -> io::Result<()> {
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
+
+    let _global_key_blocker = global_block::start();
 
     let mut app = App::new();
     let res = run_app(&mut terminal, &mut app);
