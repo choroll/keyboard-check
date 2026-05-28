@@ -466,7 +466,16 @@ pub fn draw(f: &mut Frame, app: &App) {
         height: legend_height,
     };
 
-    let legend = Paragraph::new(" Press any key to highlight  ESC or Ctrl+C to exit ")
+    let exit_hint = if app.esc_exit_pending() {
+        "ESC again to exit"
+    } else {
+        "double ESC to exit"
+    };
+
+    let legend = Paragraph::new(format!(
+        " Press any key to highlight  {}  Ctrl+C to exit ",
+        exit_hint
+    ))
         .alignment(Alignment::Center)
         .style(Style::default().fg(Color::Rgb(120, 120, 120)));
     f.render_widget(legend, legend_area);

@@ -2,6 +2,7 @@ use crossterm::event::{
     KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, ModifierKeyCode,
 };
 use std::collections::HashSet;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct PressedKey {
@@ -22,7 +23,10 @@ pub struct App {
     pressed_keys: HashSet<PressedKey>,
     pressed_modifiers: KeyModifiers,
     pub running: bool,
+    esc_first_press_at: Option<Instant>,
 }
+
+const ESC_DOUBLE_PRESS_WINDOW: Duration = Duration::from_millis(800);
 
 impl App {
     pub fn new() -> Self {
@@ -30,6 +34,7 @@ impl App {
             pressed_keys: HashSet::new(),
             pressed_modifiers: KeyModifiers::NONE,
             running: true,
+            esc_first_press_at: None,
         }
     }
 
@@ -40,7 +45,17 @@ impl App {
         if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
             match key.code {
                 KeyCode::Esc => {
-                    self.running = false;
+                    let now = Instant::now();
+                    let within_window = self
+                        .esc_first_press_at
+                        .is_some_and(|first| now.duration_since(first) <= ESC_DOUBLE_PRESS_WINDOW);
+
+                    if within_window {
+                        self.running = false;
+                        self.esc_first_press_at = None;
+                    } else {
+                        self.esc_first_press_at = Some(now);
+                    }
                 }
                 KeyCode::Char('c') if key.modifiers == KeyModifiers::CONTROL => {
                     self.running = false;
@@ -96,6 +111,11 @@ impl App {
                 ModifierKeyCode::LeftHyper | ModifierKeyCode::RightHyper => KeyModifiers::HYPER,
                 ModifierKeyCode::LeftMeta | ModifierKeyCode::RightMeta => KeyModifiers::META,
             })
+    }
+
+    pub fn esc_exit_pending(&self) -> bool {
+        self.esc_first_press_at
+            .is_some_and(|first| first.elapsed() <= ESC_DOUBLE_PRESS_WINDOW)
     }
 }
 
@@ -196,8 +216,11 @@ mod tests {
     }
 
     #[test]
-    fn test_esc_exits() {
+    fn test_double_esc_exits() {
         let mut app = App::new();
+        app.handle_key_event(KeyEvent::from(KeyCode::Esc));
+        assert!(app.running);
+
         app.handle_key_event(KeyEvent::from(KeyCode::Esc));
         assert!(!app.running);
     }
